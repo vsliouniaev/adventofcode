@@ -1,6 +1,5 @@
 open System.Text.RegularExpressions
 open System
-open System.Collections.Generic
 
 type State = start = 0 | sleep = 1 | wake = 2
 type Event = {guard:int; time:DateTime; kind:State}
@@ -28,14 +27,13 @@ let splitGuard list =
           | head :: tail ->
                 let ev = parseEvent lastGuard head
                 List.concat[[ev]; split state ev.guard tail;]
-        split [] -1 list
-        // TODO: Is this tail-recursive?       
+           // TODO: Make this tail-recursive
+        split [] -1 list    
 
 let totalSleepReducer acc ((f:Event), (s:Event)) =
         acc + match (f,s) with
               | (f, s) when f.kind = State.sleep && s.kind = State.wake -> (s.time - f.time).TotalMinutes |> int
               | _ -> 0
-
 
 let guardSleptFor seq' =
         Seq.pairwise seq' 
