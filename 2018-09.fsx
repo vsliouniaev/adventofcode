@@ -72,6 +72,8 @@ let displayForNumPlayers (numPlayers:int) (m:Marble) =
     printfn ""
     m
 
+let t = System.Diagnostics.Stopwatch.StartNew()
+
 let data = readFileLines "2018-09" |> Seq.head |> parse
 let numPlayers = fst data
 let max  = snd data
@@ -106,9 +108,9 @@ zero.Right <- zero
 let mutable current = zero
 display current
 
-[for m in 1..max -> (current <- place (bigint m) current)]
+[for m in 1..(max*100) -> (current <- place (bigint m) current)]
 elfPoints |> Array.max
-
+t.Elapsed
 // Part 1 385820
 
 //Part 2, when max2 = max * 100 - 3156297594
