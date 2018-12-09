@@ -1,5 +1,6 @@
-open System.Text.RegularExpressions
 open System
+open System.Text.RegularExpressions
+open System.Collections.Generic
 
 type State = start = 0 | sleep = 1 | wake = 2
 type Event = {guard:int; time:DateTime; kind:State}
@@ -39,8 +40,27 @@ let guardSleptFor seq' =
         Seq.pairwise seq' 
         |> Seq.fold totalSleepReducer 0
 
-let data = readFile "2018-04.1" |> Seq.sort |> List.ofSeq
-splitGuard data 
-|> Seq.groupBy (fun ev -> ev.guard) 
-|> Seq.map (fun item -> fst item, (item |> snd |> guardSleptFor))
-|> List.ofSeq
+let data = readFile "2018-04" |> Seq.sort |> List.ofSeq |> splitGuard |> List.groupBy (fun ev -> ev.guard)
+
+let sleepiest data =
+        let mutable s = 0
+        let mutable maxSleep = 0
+        let mutable sleepiestMin = -1        
+        data 
+        |> Seq.map (fun ev -> (ev.time.Minute, ev.kind)) 
+        |> Seq.sort
+        |> Seq.iter (fun ev -> // TODO: Use a fold 
+                match snd ev with
+                | State.sleep -> 
+                        s <- s + 1
+                        if s > maxSleep then maxSleep <- s; sleepiestMin <- fst ev
+                | State.wake -> s <- s - 1
+                | _ -> ())
+        (maxSleep, sleepiestMin)               
+let sleepiestGuard = data |> Seq.map (fun item -> fst item, (item |> snd |> guardSleptFor)) |> Seq.maxBy snd
+let sleepiestGuardData = data |> Seq.find (fun f -> fst sleepiestGuard = fst f) |> snd // This probably has a single function
+let part1 = sleepiestGuardData |> sleepiest |> snd |> (*) (fst sleepiestGuard) // 21956
+
+let part2 = data |> Seq.map (fun g -> 
+        let depthAndMin = snd g |> sleepiest
+        (fst depthAndMin, fst g * (snd depthAndMin))) |> Seq.max |> snd // 124511
