@@ -109,8 +109,8 @@ let mutable current = zero
 display current
 
 [for m in 1..(max*100) -> (current <- place (bigint m) current)]
-elfPoints |> Array.max
-t.Elapsed
+let ans = elfPoints |> Array.max
+let took = t.Elapsed
 // Part 1 385820
 
 //Part 2, when max2 = max * 100 - 3156297594
