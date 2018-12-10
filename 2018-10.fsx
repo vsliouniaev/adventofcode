@@ -47,13 +47,13 @@ let move d = d |> moveby 1
 let resetCoords data = 
     let minx = data |> getPoints |> minX 
     let miny = data |> getPoints |> minY
-    data |> Seq.map (fun (x,y,i,j) -> (x-minx, y-miny, i, j))
+    data |> Seq.map (fun (x,y,i,j) -> (x-minx, y-miny, i, j)) |> List.ofSeq
 
 let simulate jumpBy dat =
     let rec doSim best minSize iterations dat =
         let newPositions = dat |> Seq.map move |> resetCoords
         let thisSize = newPositions |> getPoints |> gridSize
-        printfn "iteration: %i grid size %i" (iterations + jumpBy) minSize
+        //printfn "iteration: %i grid size %i" (iterations + jumpBy) minSize
         match thisSize >= minSize with
             | false -> newPositions |> doSim newPositions thisSize (iterations + 1)
             | true -> best
