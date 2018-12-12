@@ -1,46 +1,34 @@
-open System.Collections.Generic
-open System.Collections.Generic
-open System.Collections.Generic
 let readFile (filePath:string) = seq {
     use sr = new System.IO.StreamReader (filePath)
-    while not sr.EndOfStream do yield sr.ReadLine ()
-}
+    while not sr.EndOfStream do yield sr.ReadLine () }
+let parseDataLine (s:string) = (s.[5], s.[36])
+let data = readFile "2018-07" |> Seq.map parseDataLine |> List.ofSeq
+let notContainedIn (other:seq<'a>) (a:'a) = Seq.contains a other |> not
+let maxParallel = 5
+let stepTime c = (int c) - 4
 
-let parseDataLine (s:string) =
-        (s.[5], s.[36])
+let availableSteps (complete:list<char>) (inProgress:list<(char*int)>) (data:list<(char*char)>) =
+   let all = data |> List.unzip |> (fun (l1, l2) -> List.append l1 l2) |> Set.ofList
+   let locked = data |> List.filter (fun (r,_) -> notContainedIn complete r ) |> List.map snd |> List.distinct
+   let availableSteps = all 
+                        |> Seq.filter (notContainedIn locked) 
+                        |> Seq.filter (notContainedIn complete) 
+                        |> Seq.filter (notContainedIn (Seq.map fst inProgress))
+                        |> Seq.sort
+   availableSteps |> Seq.map (fun f -> (f, stepTime f)) |> List.ofSeq |> List.sort
 
-let raw = readFile "2018-07" |> Seq.map parseDataLine |> List.ofSeq
-let first = raw |> Seq.map fst
-let second = raw |> Seq.map snd
-let firstStep = first |> Seq.filter (fun s -> second |> (Seq.contains s) |> not) |> List.ofSeq |> List.distinct
+let rec go total (completed:list<char>) (inProgress:list<(char*int)>) (data:list<(char*char)>) =
+   let tasks   = inProgress @ (availableSteps completed inProgress data)
+   if tasks = [] 
+      then (total, new string [| for c in completed -> c|])
+   else
+      let time        = tasks  |> Seq.minBy snd |> snd
+      let worked      = tasks  |> List.truncate maxParallel |> List.map (fun (task, duration) -> (task, duration - time))
+      let finished    = worked |> List.filter (fun (_, duration) -> duration  = 0 ) |> List.map fst
+      let inProgress  = worked |> List.filter (fun (_, duration) -> duration <> 0 )
+      go (total+time) (completed@finished) inProgress data
 
-// This data structure is nonsense - fix
-let toprereqDict (steps:seq<(char*char)>) =
-    steps 
-    |> Seq.groupBy snd 
-    |> Seq.fold (fun (state:list<char * list<char>>) (k, v) -> 
-       state@[(k, (v |> List.ofSeq |> List.map fst))]
-    ) []
+go 0 [] [] data
 
-let prereq = raw |> toprereqDict
-
-let stepTime c = 
-   (int c) - 4
-
-let rec doStep (availableSteps:list<char>) (completed:list<char>) (prereq:list<(char * list<char>)>) =
-    let sorted = availableSteps |> List.filter (fun i -> List.contains i completed |> not) |> List.sort 
-    let nextStep = sorted |> Seq.tryHead
-    let longestTime = sorted |> List.tryLast
-    printfn "%A" availableSteps.Length
-    match nextStep with
-    | None ->
-        completed
-    | Some c ->
-        let newPrereq = prereq |> List.map (fun (a,prereq) -> (a,prereq |> List.filter ((<>)c)))
-        let unlockedSteps = newPrereq |> List.filter (fun (_,prereq) -> prereq = List.empty ) |> List.map fst
-        let newPrereq = newPrereq |> List.filter (fun (_,prereq) -> prereq <> List.empty)
-        let newCompleted = completed@[c]
-        let newAvail = (availableSteps |> List.filter ((<>) c))@unlockedSteps
-        doStep newAvail newCompleted newPrereq
-    
-new string [|for c in doStep firstStep [] prereq -> c|]
+//      OUGLTKDJVBRMIXSACWYPEQNHZF
+// 929, OUXYGLVTRKMBDIJSACPWEQNZHF
